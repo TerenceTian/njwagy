@@ -1,0 +1,142 @@
+<?xml  version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jee="http://www.springframework.org/schema/jee" xmlns:lang="http://www.springframework.org/schema/lang"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee.xsd
+        http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+	<context:component-scan base-package="org.njwa.onlineacts.conf" />
+	<context:component-scan base-package="person.tianye.wechat.conf" />
+
+	
+	<!-- This bean has been referred fron struts.xml file; So type it correctly; -->
+	<!-- Make scope prototype; This is really important. -->
+	<bean name="userAction" class="org.njwa.onlineacts.controller.UserAction"
+		scope="prototype">
+		<property name="userManager"><ref bean="userManager" /></property>
+		<property name="wechatManager"><ref bean="wechatManager" /></property>
+	</bean>
+	<!-- These beans are injected automatically by spring context -->
+	<bean id="userManager" class="org.njwa.onlineacts.service.imp.UserManagerImp">
+		<property name="userDAO" ref="userDAO" />
+	</bean>
+	<bean id="userDAO" class="org.njwa.onlineacts.dao.imp.UserDAOImp">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	
+	
+	<bean name="activityAction" class="org.njwa.onlineacts.controller.ActivityAction" scope="prototype">
+		<property name="activityManager">
+			<ref bean="activityManager" />
+		</property>
+		<property name="wechatManager">
+			<ref bean="wechatManager" />
+		</property>
+	</bean>
+	<bean id="activityManager" class="org.njwa.onlineacts.service.imp.ActivityManagerImp">
+		<property name="activityDAO" ref="activityDAO" />
+		<property name="wechatManager" ref="wechatManager"></property><!-- 日后解除这个耦合 -->
+	</bean>
+	<bean id="activityDAO" class="org.njwa.onlineacts.dao.imp.ActivityDAOImp">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	
+	
+	<bean name="adminAction" class="org.njwa.onlineacts.controller.AdminAction" scope="prototype">
+		<property name="adminManager">
+			<ref bean="adminManager" />
+		</property>
+	</bean>
+	<bean id="adminManager" class="org.njwa.onlineacts.service.imp.AdminManagerImp">
+		<property name="userDAO" ref="userDAO" />
+		<property name="adminDAO" ref="adminDAO" />
+	</bean>
+	<bean id="adminDAO" class="org.njwa.onlineacts.dao.imp.AdminDAOImp">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	
+	
+	
+	<bean name="wechatAction" class="org.njwa.onlineacts.controller.WechatAction" scope="prototype">
+		<property name="wechatManager">
+			<ref bean="wechatManager" />
+		</property>
+	</bean>
+	<bean id="wechatManager" class="person.tianye.wechat.service.imp.WechatManagerImp">
+		<property name="accessTokenEntity" ref="accessTokenEntity" />
+		<property name="wechatAPI" ref="wechatAPI" />
+	</bean>
+	<bean id="accessTokenEntity" class="person.tianye.wechat.entity.AccessToken" scope="singleton"/>
+	<bean id="wechatAPI" class="person.tianye.wechat.util.WechatAPI" scope="singleton">
+		<property name="wechatConf" ref="wechatConf" />
+	</bean>
+	<bean id="wechatConf" class="person.tianye.wechat.conf.WechatConfigure" scope="singleton"/>
+		
+	
+	
+	
+
+	<!-- Configure User Conf -->
+	<!-- don't modify the congfiguration below -->
+	<!-- <util:properties id="jetProperties" location="/WEB-INF/configInfo.properties" /> -->
+
+	<!-- Configure jdbc.properties -->
+	<bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
+		p:location="/WEB-INF/configInfo.properties" />
+
+	<!-- Data Source configuration -->
+	<!-- 
+	<bean id="basicDataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close" p:driverClassName="${jdbc.driverClassName}" 
+		p:url="${jdbc.databaseurl}" p:username="${jdbc.username}" p:password="${jdbc.password}" 
+		p:maxActive="${jdbc.maxActive}" p:maxIdle="${jdbc.maxIdle}" p:maxWait="${jdbc.minimumIdle}" />
+		
+	 -->
+	<bean id="hikariDataSource" class="com.zaxxer.hikari.HikariDataSource" destroy-method="shutdown">
+		<constructor-arg>
+		<bean class="com.zaxxer.hikari.HikariConfig">
+			<property name="driverClassName" value="${jdbc.driverClassName}"/>
+			<property name="jdbcUrl" value="${jdbc.local.jdbcUrl}"/>
+			<property name="username" value="${jdbc.local.username}"/>
+			<property name="password" value="${jdbc.local.password}"/>
+			<property name="connectionTimeout" value="${jdbc.maxWait}"/>
+			<property name="maximumPoolSize" value="${jdbc.maxActive}"/>
+			<property name="minimumIdle" value="${jdbc.minimumIdle}"/>
+		</bean>
+		</constructor-arg>
+	</bean>
+ 
+	<!-- Configure hibernate session factory -->
+	<bean id="sessionFactory" class="org.springframework.orm.hibernate3.LocalSessionFactoryBean">
+		<property name="dataSource" ref="hikariDataSource" />
+		<property name="configLocation">
+			<value>classpath:hibernate.cfg.xml</value>
+		</property>
+		<property name="configurationClass">
+			<value>org.hibernate.cfg.AnnotationConfiguration</value>
+		</property>
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">${jdbc.dialect}</prop>
+				<prop key="hibernate.show_sql">false</prop>
+				<prop key="hibernate.autoReconnect">true</prop>
+			</props>
+		</property>
+	</bean>
+	<!-- Run SQL queries in transactions -->
+	<tx:annotation-driven />
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+
+</beans>

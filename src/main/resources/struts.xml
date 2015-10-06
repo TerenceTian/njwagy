@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+"-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+"http://struts.apache.org/dtds/struts-2.0.dtd">
+
+<struts>
+	<constant name="struts.action.extension" value=","/> 
+	<constant name="struts.i18n.encoding" value="utf8"/>  
+
+	<!-- devMode is helpful when you want some extra logs for debugging -->
+	<constant name="struts.devMode" value="false" />
+	
+	<!-- Global message resource; Otherwise you will have seperate message resource for each Action -->
+	<constant name="struts.custom.i18n.resources" value="messages" />
+	
+	<!-- This is important if you are planning to have slashes in Action URLs 
+		e.g. In this demo, employee is deleted using URL /delete/10 This this is 
+		set to false; then struts will try to find mapping for URL "/10" instaed 
+		of "/delete/10" -->
+	<constant name="struts.enable.SlashesInActionNames" value="true" />
+
+	<!-- intercepter -->
+	<package name="myBaseIntercepter" extends="struts-default" abstract="true">  
+        <!-- 添加拦截器 -->  
+        <interceptors>  
+            <!-- 添加登陆拦截器 -->  
+            <interceptor name="loginValidate" class="org.njwa.onlineacts.interceptor.LoginInterceptor"/>
+            <interceptor name="authorityValidate" class="org.njwa.onlineacts.interceptor.AuthorityInterceptor"/>  
+            <!-- 新建一个站，把登陆拦截器和默认的站放进去 -->  
+            <interceptor-stack name="myLoginInterceptorStack">  
+                <interceptor-ref name="defaultStack"/>  
+                <interceptor-ref name="loginValidate"/>  
+            </interceptor-stack>
+        </interceptors>  
+          
+        <!-- 修改默认拦截器   
+        <default-interceptor-ref name="myInterceptorStack"/>  
+         -->
+        <!-- 将result设置为全局的，这样就不用在每一个package里面都添加拦截器了 -->  
+        <global-results>  
+            <result name="login" type="redirect">/</result>
+        </global-results>
+        <!-- 定义全局异常映射  
+        <global-exception-mappings>   
+           <exception-mapping exception="java.lang.Exception" result="exception"/>
+        </global-exception-mappings>
+         -->
+    </package>  
+
+
+
+	<!-- Normal Action mappings are defined here -->
+	
+	<!-- Home page -->
+	<package name="homePage" namespace="" extends="myBaseIntercepter">
+		<action name="*" >
+			<result>/view/index.jsp</result>
+		</action>
+		<action name="login" class="userAction" method="isUserLogged">
+			<result name="error">/view/login.jsp</result>
+			<result type="redirect">/user/home</result>
+		</action>
+		<action name="logout" class="userAction" method="userLogout">
+			<result type="redirect">/</result>
+		</action>
+		<action name="regist" >
+			<result>/view/regist.jsp</result>
+		</action>
+	</package>
+	
+	<!-- user -->
+	<package name="user" namespace="/user" extends="myBaseIntercepter">
+		<action name="home" class="userAction" method="viewUserProfile">
+			<result>/view/view_my_profile.jsp</result>
+			<interceptor-ref name="myLoginInterceptorStack"/>
+		</action>
+		<action name="activity" class="activityAction" method="viewUserActivityList">
+			<result>/view/view_my_acts.jsp</result>
+			<interceptor-ref name="myLoginInterceptorStack"/>
+		</action>
+		<action name="doRegist" class="userAction" method="userRegist">
+			<result type="redirect">/login</result>
+			<result name="error">/regist</result>  
+		</action>
+		<action name="doLogin" class="userAction" method="userLogin">
+			<result type="redirect">/user/home</result>
+			<result name="error" type="redirect">/login</result>
+		</action>
+		<action name="doLogout" class="userAction" method="userLogout">
+			<result type="redirect">/login</result>
+		</action>
+		<action name="changePassword">
+			<result >/view/change_password.jsp</result>
+			<interceptor-ref name="myLoginInterceptorStack"/>
+		</action>
+		<action name="doChangePassword" class="userAction" method="changePassword">
+			<result type="redirect">/user/home</result>
+			<interceptor-ref name="myLoginInterceptorStack"/>
+		</action>
+		
+		<action name="editProfile" class="userAction" method="viewUserProfile">
+			<result >/view/edit_profile.jsp</result>
+			<interceptor-ref name="myLoginInterceptorStack"/>
+		</action>
+		<action name="doEditProfile" class="userAction" method="editUserProfile">
+			<result type="redirect">/user/home</result>
+			<interceptor-ref name="myLoginInterceptorStack"/>
+		</action>
+		
+		
+	</package>
+	
+	
+	<!-- admin -->
+	<package name="admin" namespace="/admin" extends="myBaseIntercepter">
+		<action name="releaseActivity">
+			<result>/view/admin/release_activity.jsp</result>
+		</action>
+		<action name="doReleaseActivity" class="activityAction" method="addActivity">
+			<result type="redirect">/activity/</result>
+			<result name="input" type="redirect">/admin/releaseActivity</result>
+		</action>
+		<action name="editHost/" class="adminAction" method="viewHostList">
+			<result>/view/admin/edit_host_list.jsp</result>
+		</action>
+		<action name="editHost/delete/*" class="adminAction" method="deleteHost">
+			<param name="user.uid">{1}</param>
+			<result type="redirect">/admin/editHost/</result>
+		</action>
+		<action name="editHost/add" class="adminAction" method="addHost">
+			<result type="redirect">/admin/editHost/</result>
+		</action>
+		<action name="viewActivityParticipant/*" class="activityAction" method="viewActivityParticipant">
+			<param name="activity.aid">{1}</param>
+			<result>/view/admin/act_user_list.jsp</result>
+		</action>
+		<action name="viewActivityQRCode/*" class="activityAction" method="viewActivityQRCode">
+			<param name="activity.aid">{1}</param>
+			<result>/view/admin/view_act_qrcode.jsp</result>
+		</action>
+	</package>
+	
+	<!-- activity -->
+	<package name="activity" namespace="/activity" extends="myBaseIntercepter">
+		<action name="*" class="activityAction" method="viewActivityList">
+			<result>/view/show_act_list.jsp</result>
+		</action>
+		<action name="view/*" class="activityAction" method="getActivityDetail">
+			<param name="activity.aid">{1}</param>
+			<result >/view/show_act_detail.jsp</result>
+		</action>
+		<action name="regist/*" class="activityAction" method="userJoinActivity">
+			<param name="activity.aid">{1}</param>
+			<result type="redirect">/activity/view/{1}</result>
+		</action>
+		<action name="cancel/*" class="activityAction" method="userCancelActivity">
+			<param name="activity.aid">{1}</param>
+			<result type="redirect">/activity/view/{1}</result>
+		</action>
+		<action name="scanQRCode/*" class="activityAction" method="scanQRCode">
+			<param name="scanResult">{1}</param>
+			<result type="redirect">/user/activity</result>
+		</action>
+		
+	</package>
+	
+	<!-- activity -->
+	<package name="wechat" namespace="/wechat" extends="myBaseIntercepter">
+		<action name="test" class="wechatAction" method="Test"></action>
+	</package>
+	
+</struts>
