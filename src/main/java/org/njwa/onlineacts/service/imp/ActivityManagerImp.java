@@ -13,10 +13,12 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.njwa.onlineacts.dao.ActivityDAO;
+import org.njwa.onlineacts.dao.UserDAO;
 import org.njwa.onlineacts.entity.ActivityEntity;
 import org.njwa.onlineacts.entity.QRCodeEntity;
 import org.njwa.onlineacts.entity.UserActivityEntity;
 import org.njwa.onlineacts.entity.UserEntity;
+import org.njwa.onlineacts.entity.UserProfileEntity;
 import org.njwa.onlineacts.service.ActivityManager;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,8 @@ public class ActivityManagerImp implements ActivityManager {
 	 * @see org.njwa.onlineacts.service.ActivityManager#addActivity(org.njwa.onlineacts.entity.ActivityEntity)
 	 */
 	private ActivityDAO activityDAO;
+	
+	private UserDAO userDAO;
 
 	private WechatManager wechatManager;
 	
@@ -46,6 +50,17 @@ public class ActivityManagerImp implements ActivityManager {
 	public void setWechatManager(WechatManager wechatManager) {
 		this.wechatManager = wechatManager;
 	}
+	
+	
+
+	/**
+	 * @param userDAO the userDAO to set
+	 */
+	public void setUserDAO(UserDAO userDAO) {
+		this.userDAO = userDAO;
+	}
+
+
 
 	/**
 	 * @param activityDAO
@@ -132,15 +147,24 @@ public class ActivityManagerImp implements ActivityManager {
 	@Transactional
 	public boolean userActivityStatusChange(Long aid, Long uid, int aimFlag) {
 		// TODO Auto-generated method stub
-		boolean isSucess = false;
+		boolean isSucess = true;
 		switch(aimFlag){
 		case UserActivityEntity.FLAG_ABSENT:
+			UserActivityEntity existUserActivity2 = activityDAO.getUserActivityByAidUid(aid, uid);
+			existUserActivity2.setFlag(UserActivityEntity.FLAG_ABSENT);
+			isSucess = activityDAO.updateUserActivity(existUserActivity2);
 			break;
 		case UserActivityEntity.FLAG_COMPLETE:
 			UserActivityEntity existUserActivity = activityDAO.getUserActivityByAidUid(aid, uid);
 			existUserActivity.setScanTime(new Timestamp(System.currentTimeMillis()));
 			existUserActivity.setFlag(UserActivityEntity.FLAG_COMPLETE);
 			isSucess = activityDAO.updateUserActivity(existUserActivity);
+			//add bonus point for this user
+			if(isSucess){
+				recalculateUserPoint(uid);
+			}else{
+				isSucess = false;
+			}
 			break;
 		case UserActivityEntity.FLAG_JOINED:
 			if (this.checkRemainQuota(aid)) {
@@ -159,6 +183,30 @@ public class ActivityManagerImp implements ActivityManager {
 			break;
 		}
 		return isSucess;
+	}
+
+	/** 
+	* @Title: recalculateUserPoint 
+	* @Description: TODO(这里用一句话描述这个方法的作用) 
+	* @param @param uid    设定文件 
+	* @return void    返回类型 
+	* @throws 
+	*/
+	@Transactional
+	private void recalculateUserPoint(Long uid) {
+		// TODO Auto-generated method stub
+		List<Object[]> activityList = activityDAO.getUserActivities(uid);
+		int totalPoint = 0;
+		for(int i = 0; i <activityList.size(); i++){
+			ActivityEntity activity = (ActivityEntity)(activityList.get(i)[0]);
+			UserActivityEntity userActivity = (UserActivityEntity)(activityList.get(i)[1]);
+			if(userActivity.getFlag() == UserActivityEntity.FLAG_COMPLETE)
+				totalPoint += activity.getBonusPoint();
+		}
+		UserProfileEntity userProfile  = userDAO.getUserProfileByUid(uid);
+		userProfile.setPoint(totalPoint);
+		userDAO.updateUserProfile(userProfile);
+	
 	}
 
 	/** 
@@ -266,14 +314,15 @@ public class ActivityManagerImp implements ActivityManager {
 					Iterator<UserActivityEntity> joinListIto = joinList.iterator();
 					while(joinListIto.hasNext()){
 						UserActivityEntity userActivity = joinListIto.next();
-						if(userActivity.getUid() == user.getUid()){
+						if(userActivity.getUid() == user.getUid() && userActivity.getFlag() != UserActivityEntity.FLAG_JOINED){
 							userActivityStatusChange(qrCode.getAid(),user.getUid(),UserActivityEntity.FLAG_COMPLETE);
 							return true;
-						}							
+						}
 					}
 				}
 				userActivityStatusChange(qrCode.getAid(),user.getUid(),UserActivityEntity.FLAG_JOINED);
 				userActivityStatusChange(qrCode.getAid(),user.getUid(),UserActivityEntity.FLAG_COMPLETE);
+				return true;
 			}			
 		}
 		return false;

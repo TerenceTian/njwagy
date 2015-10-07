@@ -92,16 +92,20 @@ public class ActivityAction extends BaseAction implements Preparable {
 		logger.info("userJoinActivity method called");
 		if(user != null){
 			boolean isSucess = activityManager.userActivityStatusChange(activity.getAid(), user.getUid(), UserActivityEntity.FLAG_JOINED);
+			if(isSucess)
+				return SUCCESS;
 		}
-		return SUCCESS;
+		return ERROR;
 	}
 	
 	public String userCancelActivity(){
 		logger.info("userCancelActivity method called");
 		if(user != null){
 			boolean isSucess = activityManager.userActivityStatusChange(activity.getAid(), user.getUid(), UserActivityEntity.FLAG_NOTJOIN);
+			if(isSucess)
+				return SUCCESS;
 		}
-		return SUCCESS;
+		return ERROR;
 	}
 	
 	public String viewUserActivityList(){
@@ -132,16 +136,22 @@ public class ActivityAction extends BaseAction implements Preparable {
 	}
 	
 	public String viewActivityQRCode(){
+		logger.info("viewActivityQRCode method called");
 		qrCode = activityManager.getActivityQRCodeByAid(activity.getAid());
-		if(qrCode !=null)
+		if(qrCode !=null){
 			qrCode.setUrl(wechatManager.getQRCodePicUrl(qrCode.getTicket()));
-		return SUCCESS;
+			return SUCCESS;
+		}
+		return ERROR;
 	}
 	
 	public String scanQRCode(){
+		logger.info("scanQRCode method called");
 		scanResult = "";
 		boolean isSigned = activityManager.userScanSign(user, scanResult);
-		return SUCCESS;
+		if(isSigned)
+			return SUCCESS;
+		return ERROR;
 	}
 	
 

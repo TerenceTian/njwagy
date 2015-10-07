@@ -31,6 +31,10 @@
                 <interceptor-ref name="defaultStack"/>  
                 <interceptor-ref name="loginValidate"/>  
             </interceptor-stack>
+            <interceptor-stack name="myAuthorityInterceptorStack">  
+                <interceptor-ref name="defaultStack"/>  
+                <interceptor-ref name="authorityValidate"/>  
+            </interceptor-stack>
         </interceptors>  
           
         <!-- 修改默认拦截器   
@@ -39,6 +43,7 @@
         <!-- 将result设置为全局的，这样就不用在每一个package里面都添加拦截器了 -->  
         <global-results>  
             <result name="login" type="redirect">/</result>
+            <result name="error" type="redirect">/error</result>
         </global-results>
         <!-- 定义全局异常映射  
         <global-exception-mappings>   
@@ -65,6 +70,9 @@
 		</action>
 		<action name="regist" >
 			<result>/view/regist.jsp</result>
+		</action>
+		<action name="error" >
+			<result>/view/error.jsp</result>
 		</action>
 	</package>
 	
@@ -113,6 +121,7 @@
 	
 	<!-- admin -->
 	<package name="admin" namespace="/admin" extends="myBaseIntercepter">
+		<default-interceptor-ref name="myAuthorityInterceptorStack" />
 		<action name="releaseActivity">
 			<result>/view/admin/release_activity.jsp</result>
 		</action>
@@ -152,14 +161,17 @@
 		<action name="regist/*" class="activityAction" method="userJoinActivity">
 			<param name="activity.aid">{1}</param>
 			<result type="redirect">/activity/view/{1}</result>
+			<interceptor-ref name="myLoginInterceptorStack"/>
 		</action>
 		<action name="cancel/*" class="activityAction" method="userCancelActivity">
 			<param name="activity.aid">{1}</param>
 			<result type="redirect">/activity/view/{1}</result>
+			<interceptor-ref name="myLoginInterceptorStack"/>
 		</action>
 		<action name="scanQRCode/*" class="activityAction" method="scanQRCode">
 			<param name="scanResult">{1}</param>
 			<result type="redirect">/user/activity</result>
+			<interceptor-ref name="myLoginInterceptorStack"/>
 		</action>
 		
 	</package>

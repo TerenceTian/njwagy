@@ -87,7 +87,7 @@ public interface ActivityDAO {
 	* @Title: getUserActivities 
 	* @Description: TODO(这里用一句话描述这个方法的作用) 
 	* @param @param uid
-	* @param @return    设定文件 
+	* @param @return    Activity, UserActivity 
 	* @return List<ActivityEntity>    返回类型 
 	* @throws 
 	*/

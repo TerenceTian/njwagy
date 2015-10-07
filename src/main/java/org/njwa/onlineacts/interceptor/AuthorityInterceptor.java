@@ -8,6 +8,7 @@
 */
 package org.njwa.onlineacts.interceptor;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.njwa.onlineacts.controller.BaseAction;
@@ -43,19 +44,33 @@ public class AuthorityInterceptor extends AbstractInterceptor {
 		// TODO Auto-generated method stub
 		ActionContext ctx = invocation.getInvocationContext();
 		Map<String, Object> session = ctx.getSession();
-		// 取出名为user的session属性
-		UserProfileEntity userProfile = (UserProfileEntity) session.get(BaseAction.loginUserProfileKey);
-		Map application = invocation.getInvocationContext().getApplication();
-		String actionName = invocation.getProxy().getActionName();
-		// 如果没有登陆，都返回重新登陆
-		switch(userProfile.getRole()){
-		case 1:
-			break;
-		case 2:
-			break;
-		}
 
-		return Action.SUCCESS;
+		UserEntity user = (UserEntity) session.get(BaseAction.loginUserSessionKey);
+		
+		// 如果没有登陆，都返回重新登陆
+		if (user != null) {
+			UserProfileEntity userProfile = (UserProfileEntity) session.get(BaseAction.loginUserProfileKey);
+//			Map application = invocation.getInvocationContext().getApplication();
+//			Map globalAuthorityMap = (Map)application.get("authorityMap"); 
+			String actionName = invocation.getProxy().getActionName().replaceAll("[0-9]","");//去参数act name
+
+			Map<String, String> authorityMap = new HashMap<String, String>();
+			authorityMap.put("releaseActivity", "1");
+			authorityMap.put("doReleaseActivity", "1");
+			authorityMap.put("editHost/", "2");
+			authorityMap.put("editHost/delete/", "2");
+			authorityMap.put("editHost/add", "2");
+			authorityMap.put("viewActivityParticipant/", "1");
+			authorityMap.put("viewActivityQRCode/", "1");
+			
+			if(authorityMap.containsKey(actionName)){
+				int role = Integer.valueOf(authorityMap.get(actionName));
+				if(userProfile.getRole()>=role)
+					return invocation.invoke();
+			}
+			return Action.ERROR;
+		}
+		return Action.LOGIN;
 	}
 
 }
